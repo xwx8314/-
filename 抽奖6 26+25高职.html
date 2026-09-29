@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>抽奖</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+
+    body {
+      min-height: 100vh;
+      background: var(--bg-body, radial-gradient(circle at 30% 20%, #0b1f33, #030a12));
+      font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 16px;
+      overflow: hidden;
+      transition: background 0.5s;
+    }
+
+    .app-container {
+      width: 1300px;
+      max-width: 98vw;
+      height: 90vh;
+      max-height: 900px;
+      background: var(--glass-bg, rgba(8, 20, 35, 0.82));
+      backdrop-filter: blur(16px);
+      border-radius: 52px;
+      border: 2px solid var(--accent, rgba(255, 215, 0, 0.4));
+      box-shadow: 0 35px 60px rgba(0, 0, 0, 0.9), 0 0 0 2px rgba(255, 200, 0, 0.2) inset, 0 0 50px var(--accent-glow, #ffbb0044);
+      display: flex;
+      flex-direction: column;
+      padding: 18px 28px 22px 28px;
+      transition: all 0.3s;
+      position: relative;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 8px 12px 8px;
+      border-bottom: 2px solid var(--accent, rgba(255, 215, 0, 0.3));
+      margin-bottom: 14px;
+      flex-shrink: 0;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .title { display: flex; align-items: center; gap: 16px; }
+
+    .title h1 {
+      font-size: 2rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--accent, #ffd966), var(--accent-dark, #ffaa33));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      text-shadow: 0 0 30px var(--accent-glow, #ffb800cc);
+      letter-spacing: 3px;
+    }
+
+    .title .badge {
+      background: var(--accent, #ffd966);
+      color: #0a1a2a;
+      padding: 5px 18px;
+      border-radius: 40px;
+      font-weight: 800;
+      font-size: 0.95rem;
+      box-shadow: 0 0 30px var(--accent, #ffd966);
+      white-space: nowrap;
+    }
+
+    .header-right { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+
+    .music-control {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 6px 18px 6px 22px;
+      border-radius: 50px;
+      border: 1px solid var(--accent, rgba(255, 215, 0, 0.5));
+    }
+
+    .music-control span { color: var(--accent, #ffd966); font-size: 0.95rem; }
+
+    .music-btn {
+      background: var(--accent, #ffd966);
+      border: none;
+      width: 42px; height: 42px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      font-size: 1.4rem;
+      color: #0b1a2e;
+      transition: all 0.15s;
+      box-shadow: 0 0 25px var(--accent, #ffd966);
+    }
+
+    .music-btn:hover { transform: scale(1.08); }
+
+    .settings-btn {
+      background: rgba(255, 215, 0, 0.15);
+      border: 1.5px solid var(--accent, #ffd966);
+      color: var(--accent, #ffd966);
+      padding: 8px 20px;
+      border-radius: 40px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    .settings-btn:hover { background: rgba(255, 215, 0, 0.3); }
+
+    .display-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: var(--display-bg, radial-gradient(circle at 50% 30%, #132b42, #050e18));
+      border-radius: 48px;
+      box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.9), 0 15px 30px rgba(0, 0, 0, 0.7);
+      margin-bottom: 20px;
+      padding: 20px;
+      border: 1px solid var(--accent, rgba(255, 215, 0, 0.35));
+      position: relative;
+      overflow: hidden;
+      min-height: 250px;
+      transition: all 0.3s;
+    }
+
+    .display-area::after {
+      content: "";
+      position: absolute;
+      width: 200%; height: 200%;
+      background: radial-gradient(circle, var(--accent-glow, rgba(255, 215, 0, 0.1)) 0%, transparent 70%);
+      animation: rotateGlow 16s infinite linear;
+      pointer-events: none;
+    }
+
+    @keyframes rotateGlow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+    .result-box { z-index: 3; text-align: center; width: 100%; padding: 10px; }
+
+    .result-name {
+      font-size: 6.2rem;
+      font-weight: 900;
+      line-height: 1.2;
+      background: linear-gradient(135deg, #fff9e6, var(--accent, #ffd966));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      text-shadow: 0 0 50px var(--accent, #ffd966);
+      letter-spacing: 8px;
+      word-break: break-word;
+    }
+
+    .result-class {
+      font-size: 2.6rem;
+      font-weight: 600;
+      margin-top: 14px;
+      color: #b7e0ff;
+      text-shadow: 0 0 25px #6ab0ff;
+      letter-spacing: 4px;
+      background: rgba(0, 0, 0, 0.5);
+      display: inline-block;
+      padding: 8px 46px;
+      border-radius: 60px;
+      backdrop-filter: blur(6px);
+      border: 1px solid rgba(100, 180, 255, 0.6);
+    }
+
+    .control-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+      flex-shrink: 0;
+      padding: 0 6px;
+    }
+
+    .stats {
+      display: flex; gap: 24px;
+      background: rgba(0, 0, 0, 0.45);
+      padding: 8px 24px;
+      border-radius: 50px;
+      border: 1px solid #3f5e7e;
+      color: #d4e6ff;
+      flex-wrap: wrap;
+    }
+
+    .stats div { display: flex; align-items: center; gap: 8px; font-size: 1.05rem; }
+    .stats .num { font-weight: 800; color: var(--accent, #ffd966); font-size: 1.5rem; margin-left: 6px; }
+
+    .buttons { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+
+    .btn {
+      border: none;
+      border-radius: 60px;
+      font-weight: 700;
+      font-size: 1.25rem;
+      padding: 12px 36px;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      box-shadow: 0 10px 18px -6px black;
+      background: #2b4b6e;
+      color: white;
+      border-bottom: 4px solid #1e344b;
+    }
+
+    .btn:hover { transform: translateY(-3px); filter: brightness(1.15); }
+    .btn:active { transform: translateY(2px); }
+
+    .btn-primary {
+      background: var(--accent, #ffb347);
+      color: #0b1a2e;
+      border-bottom: 4px solid var(--accent-dark, #b16f1a);
+      box-shadow: 0 0 35px var(--accent-glow, #ffb347cc);
+      font-size: 1.7rem;
+      padding: 14px 52px;
+    }
+
+    .btn-secondary { background: #2a3f5a; border-bottom: 4px solid #0f1a28; padding: 12px 32px; }
+    .btn:disabled { opacity: 0.5; pointer-events: none; filter: grayscale(0.6); }
+
+    .settings-panel {
+      position: absolute;
+      top: 70px; right: 28px;
+      background: rgba(12, 28, 48, 0.97);
+      backdrop-filter: blur(20px);
+      border-radius: 28px;
+      padding: 24px;
+      border: 1.5px solid var(--accent, #ffd966);
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.95);
+      z-index: 100;
+      width: 440px;
+      max-height: 78vh;
+      overflow-y: auto;
+      display: none;
+      color: #d4e6ff;
+    }
+
+    .settings-panel.active { display: block; }
+
+    .settings-panel h3 {
+      color: var(--accent, #ffd966);
+      font-size: 1.3rem;
+      margin-bottom: 18px;
+      display: flex; justify-content: space-between; align-items: center;
+      border-bottom: 1px solid var(--accent, #ffd96655);
+      padding-bottom: 10px;
+    }
+
+    .settings-panel h3 span { cursor: pointer; font-size: 1.2rem; color: var(--accent, #ffd966); width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: rgba(255,255,255,0.05); }
+
+    .setting-section {
+      margin-bottom: 22px;
+      border-bottom: 1px solid #2a4560;
+      padding-bottom: 18px;
+    }
+
+    .setting-section:last-child { border-bottom: none; margin-bottom: 0; }
+
+    .setting-section h4 {
+      font-size: 0.95rem;
+      color: #ffd966;
+      margin-bottom: 12px;
+      display: flex; align-items: center; gap: 6px;
+    }
+
+    .setting-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .setting-row label { font-size: 0.88rem; color: #b7d4ff; min-width: 80px; }
+
+    .setting-row input[type="number"],
+    .setting-row input[type="text"],
+    .setting-row select {
+      background: #0d1f33;
+      border: 1px solid #2a4a6e;
+      color: #e0f0ff;
+      padding: 8px 12px;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      flex: 1;
+      min-width: 80px;
+      outline: none;
+      transition: border 0.2s;
+    }
+
+    .setting-row input:focus, .setting-row select:focus { border-color: var(--accent, #ffd966); }
+
+    .setting-row input[type="range"] { flex: 2; accent-color: var(--accent, #ffd966); min-width: 100px; }
+
+    .setting-row .unit { color: #7a9bc2; font-size: 0.85rem; }
+
+    .radio-group { display: flex; gap: 14px; flex-wrap: wrap; }
+
+    .radio-group label { display: flex; align-items: center; gap: 6px; font-size: 0.88rem; color: #b7d4ff; cursor: pointer; min-width: auto; }
+    .radio-group input[type="radio"] { accent-color: var(--accent, #ffd966); width: 16px; height: 16px; }
+
+    .theme-options { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    .theme-option {
+      width: 48px; height: 48px;
+      border-radius: 14px;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: all 0.15s;
+    }
+
+    .theme-option:hover { transform: scale(1.1); }
+    .theme-option.active { border-color: #fff; box-shadow: 0 0 15px currentColor; }
+
+    .theme-default { background: linear-gradient(135deg, #ffd966, #ffaa33); }
+    .theme-ocean { background: linear-gradient(135deg, #4fc3f7, #0d47a1); }
+    .theme-rose { background: linear-gradient(135deg, #f48fb1, #ad1457); }
+    .theme-emerald { background: linear-gradient(135deg, #66bb6a, #1b5e20); }
+    .theme-purple { background: linear-gradient(135deg, #ba68c8, #4a148c); }
+
+    .btn-apply {
+      width: 100%;
+      background: var(--accent, #ffb347);
+      color: #0b1a2e;
+      border: none;
+      border-radius: 40px;
+      padding: 12px;
+      font-weight: 800;
+      font-size: 1.1rem;
+      cursor: pointer;
+      border-bottom: 4px solid var(--accent-dark, #b16f1a);
+      margin-top: 8px;
+      transition: all 0.15s;
+    }
+
+    .btn-apply:hover { filter: brightness(1.1); }
+
+    .music-import-btn {
+      background: #2a3f5a;
+      border: 1.5px dashed var(--accent, #ffd966);
+      color: #ffd966;
+      padding: 10px 16px;
+      border-radius: 14px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 600;
+      width: 100%;
+      text-align: center;
+      transition: all 0.2s;
+      margin-bottom: 8px;
+    }
+
+    .music-import-btn:hover {
+      background: #1e344b;
+      border-color: #ffe28c;
+    }
+
+    .music-status {
+      font-size: 0.82rem;
+      color: #7a9bc2;
+      margin-top: 4px;
+      text-align: center;
+      word-break: break-all;
+    }
+
+    .hidden-input { display: none; }
+
+    .hint {
+      color: #8aa8d0;
+      font-size: 0.85rem;
+      display: flex; gap: 16px; align-items: center;
+      padding-left: 12px; margin-top: 8px;
+      flex-wrap: wrap;
+    }
+
+    .hint i { font-style: normal; cursor: pointer; text-decoration: underline dotted #ffd966; color: var(--accent, #ffd966); font-weight: 600; }
+
+    .student-list-manage {
+      max-height: 180px;
+      overflow-y: auto;
+      background: #0a1a2e;
+      border-radius: 12px;
+      padding: 8px;
+      border: 1px solid #1e3a5f;
+      margin-top: 8px;
+      font-size: 0.8rem;
+    }
+
+    .student-list-manage .stu-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 8px;
+      border-bottom: 1px solid #122a44;
+      color: #a0c0e0;
+    }
+
+    .student-list-manage .stu-item:last-child { border-bottom: none; }
+
+    @media (max-width: 900px) {
+      .app-container { height: 96vh; padding: 12px; }
+      .result-name { font-size: 3.6rem; }
+      .result-class { font-size: 1.8rem; padding: 6px 24px; }
+      .btn-primary { font-size: 1.3rem; padding: 12px 32px; }
+      .title h1 { font-size: 1.4rem; }
+      .stats { gap: 10px; padding: 6px 12px; }
+      .settings-panel { width: 340px; right: 12px; top: 60px; padding: 16px; }
+      .music-control span { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container" id="appContainer">
+    <div class="header">
+      <div class="title">
+        <h1>🏆 抽奖</h1>
+        <div class="badge" id="totalBadge">0人</div>
+      </div>
+      <div class="header-right">
+        <div class="music-control">
+          <span>🎵 背景音乐</span>
+          <button class="music-btn" id="musicToggleBtn" title="播放/暂停">▶</button>
+        </div>
+        <button class="settings-btn" id="settingsToggleBtn">⚙️ 设置</button>
+      </div>
+    </div>
+
+    <div class="display-area" id="displayArea">
+      <div class="result-box">
+        <div class="result-name" id="resultName">🎉 就绪</div>
+        <div class="result-class" id="resultClass">点击抽奖开始</div>
+      </div>
+    </div>
+
+    <div class="control-bar">
+      <div class="stats">
+        <div>👥 总人数 <span class="num" id="totalCount">0</span></div>
+        <div>🎯 已抽 <span class="num" id="drawnCount">0</span></div>
+      </div>
+      <div class="buttons">
+        <button class="btn btn-primary" id="drawBtn">🎲 抽 奖</button>
+        <button class="btn btn-secondary" id="resetBtn">⟲ 重置</button>
+      </div>
+    </div>
+    <div class="hint">
+      <span>📂 点击 <i id="importTrigger">导入名单</i> 或拖拽文件 (姓名,班级 每行一个)</span>
+      <input type="file" id="fileInput" class="hidden-input" accept=".txt,.csv">
+    </div>
+  </div>
+
+  <div class="settings-panel" id="settingsPanel">
+    <h3>⚙️ 抽奖设置 <span id="closeSettingsBtn">✕</span></h3>
+
+    <div class="setting-section">
+      <h4>🎵 背景音乐管理</h4>
+      <div class="setting-row" style="flex-direction: column; align-items: stretch;">
+        <button class="music-import-btn" id="musicImportTrigger">📁 导入背景音乐 (MP3/WAV)</button>
+        <input type="file" id="musicFileInput" class="hidden-input" accept="audio/*">
+        <div class="music-status" id="musicStatus">当前：默认音乐</div>
+        <button class="music-import-btn" id="clearMusicBtn" style="border-color:#ff6b6b;color:#ff6b6b;">🗑️ 清除已保存的音乐</button>
+      </div>
+      <div class="setting-row" style="margin-top:8px;">
+        <label>音乐音量</label>
+        <input type="range" id="volumeSlider" min="0" max="1" step="0.05" value="0.5">
+        <span class="unit" id="volumeValue">50%</span>
+      </div>
+    </div>
+
+    <div class="setting-section">
+      <h4>🎯 抽取设置</h4>
+      <div class="setting-row">
+        <label>滚动时长</label>
+        <input type="number" id="durationInput" value="1.8" min="0.5" max="30" step="0.1">
+        <span class="unit">秒</span>
+      </div>
+      <div class="setting-row">
+        <label>抽奖权重</label>
+        <input type="number" id="weightInput" value="1.0" min="0.1" max="10" step="0.1">
+        <span class="unit">倍 (越大越偏向靠前)</span>
+      </div>
+      <div class="setting-row">
+        <label>抽取方式</label>
+        <div class="radio-group">
+          <label><input type="radio" name="drawMode" value="uniform" checked> 均匀随机</label>
+          <label><input type="radio" name="drawMode" value="weighted"> 加权抽取</label>
+        </div>
+      </div>
+      <div class="setting-row">
+        <label>重复中奖</label>
+        <div class="radio-group">
+          <label><input type="radio" name="repeatMode" value="allow" checked> 允许重复</label>
+          <label><input type="radio" name="repeatMode" value="deny"> 不重复</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="setting-section">
+      <h4>🔊 音效设置</h4>
+      <div class="setting-row">
+        <label>抽完淡出</label>
+        <div class="radio-group">
+          <label><input type="radio" name="fadeMode" value="fade" checked> 渐弱淡出</label>
+          <label><input type="radio" name="fadeMode" value="cut"> 立即停止</label>
+        </div>
+      </div>
+      <div class="setting-row">
+        <label>淡出时长</label>
+        <input type="number" id="fadeDurationInput" value="1.5" min="0.2" max="10" step="0.1">
+        <span class="unit">秒</span>
+      </div>
+    </div>
+
+    <div class="setting-section">
+      <h4>🎨 外观主题</h4>
+      <div class="theme-options">
+        <div class="theme-option theme-default active" data-theme="default" title="默认金"></div>
+        <div class="theme-option theme-ocean" data-theme="ocean" title="海洋蓝"></div>
+        <div class="theme-option theme-rose" data-theme="rose" title="玫瑰红"></div>
+        <div class="theme-option theme-emerald" data-theme="emerald" title="翡翠绿"></div>
+        <div class="theme-option theme-purple" data-theme="purple" title="紫罗兰"></div>
+      </div>
+    </div>
+
+    <div class="setting-section">
+      <h4>📋 名单管理</h4>
+      <div class="setting-row">
+        <label>当前名单</label>
+        <span id="settingsTotalCount" style="color:#ffd966;font-weight:700;">0 人</span>
+      </div>
+      <div class="student-list-manage" id="studentListPreview"></div>
+      <div class="setting-row" style="margin-top:8px;">
+        <button class="btn-secondary" id="clearListBtn" style="font-size:0.85rem;padding:8px 16px;">🗑️ 清空名单</button>
+        <button class="btn-secondary" id="resetListBtn" style="font-size:0.85rem;padding:8px 16px;">🔄 恢复默认</button>
+      </div>
+    </div>
+
+    <button class="btn-apply" id="applySettingsBtn">✅ 应用设置</button>
+  </div>
+
+  <audio id="bgMusic" loop preload="auto" src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3"></audio>
+
+  <script>
+    (function() {
+      const CLASS_STUDENTS = {
+        "26高职材料01": ["白嘉鑫","蔡欣雅","陈蓓","陈铭杰","陈品棋","陈修娴","陈永崟","方金泽","方铠毅","郭瑞红","郭舒琪","何金典","胡俊涛","黄臻浩","赖嘉豪","蓝素欣","蓝辛悦","蓝钰婷","李委杰","林赐聪","林泓坤","林佳榆","林焜星","林志鑫","刘雅湘","刘耀昌","吕家凯","丘俊平","阙嘉豪","苏丞铃","王方琼","王宇彤","王子豪","巫少煜","谢嘉轩","谢秦锴","叶梦钰","叶思颖","张伟豪","张馨文","张钰娴","郑思源","郑炜晨","郑小米","邹俊敏"],
+        "26高职电气01": ["陈海东","陈涛","陈文皓","陈文翊","陈洋臣","陈志鑫","陈祖豪","丁煜晗","何宇晨","黄凯维","黄鹏炜","黄振超","江紫钊","柯华聪","李博睿","李旭梁","林承栋","林鸿宇","林佳溁","林义东","刘梦铃","罗威尚","罗樟飞","邱子涵","苏铖景","唐佳阳","陶乃桢","王奥俊","王成武","王若瀚","王肖楠","吴炜欽","谢起铖","谢兴凯","徐锡福","许彬彬","张玉洁","张煜宇","郑秉镓","郑钧耀","钟博文","钟琪琳","周义龙","朱领航","朱品全"],
+        "26高职机器人01": ["蔡文涵","陈金鹏","陈琳皓","陈声铄","陈香凝","邓玉国","高荣坤","郭子恒","胡斌杰","黄晨楷","黄龙晨","黄伟铭","黄至立","江海洋","江元赟","蒋君浩","李海伟","李坤鸿","林佳宏","林楗涵","林艳","刘智杰","罗坤嗣","吕松阳","施御权","汪茂林","王杰杨","吴灵宏","谢陆涛","谢其正","谢荣发","熊玮鹭","许芳","许凯源","杨佳蕊","杨凯杰","叶文杰","尤齐鑫","张锦华","张泽恩","郑凯元","郑文睿","钟华富","钟文彬","周振扬","邹振锋"],
+        "26高职数媒01": ["蔡雅珍","蔡友坤","曾婉婷","陈佳慧","陈思锦","陈心怡","陈欣怡","陈毅颉","范家淳","甘金楷","苟峻凤","洪子若","黄可昕","黄丽婷","黄臻","黄紫凌","柯美祯","赖润源","李睿思","李诗然","李远志","林家迎","林绮","林锐羽","林诗涵","林志勋","林子贻","刘若兮","刘思嘉","卢娴","倪宝妮","瞿艾雨","沈智光","王力","王新怡","吴煜欣","谢梦圆","叶佳琪","喻睿一","袁雨欢","占韫可","张恩宁","张秋怡","庄权","庄雅琪"],
+        "26高职数媒02": ["陈博文","陈昌汉","陈诚","陈晓婷","陈雅茹","程子豪","方菡婧","冯慧莹","高圣桦","龚晓清","郭晶莹","郭罗阑","胡语昕","黄镜雯","黄敏煊","黄炜祺","蒋梓燕","金姝羽","柯沐含","李耿铭","李思彤","李婉晴","林依如","罗雨嘉","骆垚燊","马宇凌","毛仕棋","沈怡","施家旺","苏敏锐","汪蕊","王怡烔","王岳雯","吴辉强","肖若楚","杨波","杨绮","杨馨妍","杨宇宁","张黄帅一","张淑萍","张羽婵","周恒强","朱子杰","庄嘉乐"],
+        "26高职数营01": ["陈思盈","陈思颖","陈欣瑜","陈怡玲","陈梓灵","戴佳境","杜宝妍","傅奕欣","何臣帅","侯欣岚","黄婕雅","黄莉萍","黄旭文","黄豫涵","黄智伟","柯冬旭","李想","李妤婕","廖逸娴","林可欣","林思颖","林欣妍","刘芳","刘萍萍","刘依婷","马依茗","沈文欣","沈欣欣","苏晨坤","苏宜欣","孙新钰","田佳宇","万雁","王林冰","王荣凯","王鑫","翁静婷","吴铖铭","夏锦萱","谢羽茜","尤芷欣","张腾浩","郑芳菲","朱凯旋","朱志钧"],
+        "26高职数营02": ["蔡依轩","曾嘉欣","曾晋鹏","曾益涵","陈可含","陈钰涵","陈祯涵","程灵星","邓振涛","谷明轩","洪昕","黄晨希","黄鸿衍","黄景","黄秋玲","黄鑫","李静崟","林洪颖","林玲","林美玲","马文诗雨","莫海燕","倪诗琪","潘雨涵","饶婷","沈静怡","苏悦莹","王彬月","王迪","王佳蕾","王楠","危明俊","吴凌舒","吴若鑫","徐锦锋","许铠霖","杨紫瑄","叶佳敏","叶珊珊","张梓妍","郑璐洁","钟毅欣","周燕燕","周依","邹昭媛"],
+        "26高职网络01": ["蔡铭威","蔡荣泰","曹文辉","陈辰","陈铭创","陈铭扬","陈仕杰","戴冉冉","董美燕","郭子涵","黄凯迪","黄婷","江杏烨","孔令斌","蓝尹聪","连芸惜","林佳宜","林建辉","林美琪","林泉富","林泽源","刘海容","刘珈豪","刘伟","孟少强","欧世耀","潘毓仁","苏俊锴","苏美玲","苏子铭","孙子涵","汤祎程","汪键滨","魏雨婷","吴灿林","吴凯鹏","杨子航","叶鑫林","张培欣","赵权宇","郑赐荣","周辰扬","周琳芳","周霖锴","庄新轩"],
+        "25高职新能源01": ["蔡其尚","蔡伟杰","曾德栉","陈辉煌","陈龙","陈荣艺","陈幸坚","陈亚迪","邓有康","方礼亮","付诗贤","黄功懋","黄杰伟","黄智钦","乐昌棣","李佳鸿","李敏","林家鸿","林铭晟","林如星","卢颖","孟瑜轩","乔吉杰","卿龙","阮亮榕","沈辉明","孙海锋","涂明川","汪泽锴","王佳豪","王岩峰","文海川","吴光在","吴鸿波","谢晨凯","许彦楠","杨逸斌","叶松晖","张诚宇","张家鑫","张家洋","张泽文","郑仁杰","钟泽衍","祝浚杰"],
+        "26高职信安01": ["陈航","陈佳鑫","陈起铭","陈若男","陈兴远","陈莹莹","陈郑鑫","陈梓晗","陈梓豪","杜家茂","范志勋","方和弦","方紫凝","辜思涵","洪华城","洪展博","胡潮立","黄子翔","柯语彤","蓝壬欣","李明昊","李斯铭","廖锦鹏","林淑婷","林于晴","林志德","刘文杰","刘芯宇","龙涛","苏鸿鑫","王梓润","魏佳欣","谢锦钊","徐慧琳","许思源","薛柠","严嘉俊","张昌祖","张琳雪","张思博","张宴郡","郑先志","周嘉欣","周可欣","卓越"],
+        "26高职应化01": ["蔡凌峰","蔡筱琪","曾阳晨","陈戴吉多","陈鸿楷","陈美婷","陈明翰","陈鑫杰","陈奕静","杜佳璇","范奕铭","郭静坤","洪诗颖","黄东宇","黄方艺","黄柯荣","黄蕾","黄铃涵","黄思凯","江印开","江振铭","柯厦玲","李煌滨","李俊阳","李阳阳","林璟鸿","林容羽","林逸铮","刘泽贤","冉钲梁","沈艺彬","汪妙佳","王锌泓","王彦铭","王志鑫","吴东权","吴国海","吴信帆","薛鸿彬","杨煜峰","叶钰洁","应卓君","张敏","周阳皓","邹子涵"],
+        "26高职制造01": ["蔡佳鑫","蔡启辰","岑方哲","陈健桐","陈凯鑫","陈鑫滢","陈益桢","程功极","黄佳城","黄锦浩","黄启隆","黄润滋","黄思培","黄伟培","黄炜鑫","黄子涛","李国斌","李莉珑","林柏萱","林沈钧","林文烨","林仔翔","林志轩","林作鑫","刘文","卢圣楷","沈毅恒","苏国烨","童彤","王宇涵","吴信宏","谢博伟","谢佩衡","许丰达","许志钢","严心保","杨超群","杨宸熠","杨鑫涛","叶文欣","张增辉","郑灿鹏","郑德利","郑祥雨","庄汉森"],
+        "26高职智控01": ["蔡河鑫","蔡镒钧","蔡宇鑫","曾锦程","曾毅","陈潮洪","陈大涵","陈明杰","陈泽鹏","陈子铜","方振东","黄恩祈","黄佳晨","黄晓栋","黄悦","柯子恩","赖志豪","梁建辉","廖童童","林培尧","林荣锋","卢柏浩","卢欣桐","罗晨锴","吕国盛","满江林","欧阳玮琪","苏泉鑫","孙方珏","王楷杰","王铭宣","吴锦辉","谢炜杰","许子阅","薛珍妮","鄢子涵","杨晨毅","杨清煜","杨子昊","詹子乐","张宏宇","张健豪","张仕林","卓锐新","邹卓辉"],
+        "26高职智联车01": ["蔡彦斌","陈博恩","陈代镒","陈昊邦","陈佳鸿","陈佳鹏","陈少聪","陈思宇","陈晓露","陈铱杭","陈毅鹏","邓宇炀","范灵旭","方博雄","费廷勇","高煜宸","胡圣宇","黄彬鑫","黄蘩","黄飞","蓝鑫杰","李诗滢","李苇杭","李炜铖","李文鎧","林本航","林建懿","林靖桉","林万豪","林文杰","刘梦祥","刘勇华","罗俊彬","吕成杭","唐斌斌","王浩","王文涛","吴涛涛","夏香雨","谢利权","杨方钦","余晨","张思涵","郑锦博","朱铠鑫"],
+        "26高职智造01": ["白如林","陈昌文","陈启睿","陈耀辉","陈熠榕","陈泽凯","冯威霖","高展源","何琦涵","胡瑞峰","黄嘉俊","黄凯鑫","黄子城","李贺","李俊贤","李翼坤","林安凯","林润钦","刘安庆","刘权福","刘昕宇","刘一祥","罗文远","宁田宇","潘磊","沈铭梁","施炜鑫","史靖博","苏鹏","王森海","王文杰","魏磊","吴傈伟","吴添鑫","谢思成","谢政丰","谢祖桦","杨宗炜","姚龙斌","伊世烨","易哲宇","张亦超","郑冠棋","郑国栋","钟翌宸"],
+        "25高职制造01": ["陈娴雅","陈思钰","陈真洋","傅荣杰","陈文岳","陈希恺","林贤斌","陈子煜","赖昕妍","李家奕","王诗棋","陈子豪","汪珍珍","刘艺轩","张宇恒","金天","林嘉豪","黄思涵","沈旭鹏","吕增林","叶振耀","林宇轩","张佳鑫","傅鹏","扶忆情","李正昌","王晨斌","张馨悦","蓝彪龙","温建楠","吴佳萍","黄智超","池鑫宇","高文坚","叶佳捷","罗志浩","吴诗妍","陈雅曼","郑兴发","沈星宇"],
+        "25高职制造02": ["高怡馨","林晶","王钰玲","涂海峰","林轩羽","郭佳雨","王佳豪","余业鸿","苏榕钊","熊天宇","汤泽锴","郑琳","王智雄","张镇洲","张诗涵","连茉涵","熊果星","王泽杰","张捷","吴婧涵","陈铭赫","朱煜鑫","林晓宛","邓榕","雷利元昊","许渊斌","陈垚","廖炜","黄婧雯","郑胜涵","陈澍","甘恺煜","林郁洁","钟凯华","陈延垒","林雯婷","谌博涵","江泽赋","王琪玮","柯楠","林铃钰"],
+        "25高职智控01": ["黄哲伟","赖铭晖","张江彬","刘秋萍","叶启明","余昕懋","章雅婷","邱志添","胡俊杰","卢誉婵","朱居蕊","高宇恒","陈万晟","陈奕新","许铭涛","罗光毅","庄润虹","苏俊鸿","陈文杰","林晓炜","詹佳颖","陈宇翔","陈科霖","洪筱婕","郑毅涵","蔡恒","王宇鑫","孔慈","冯乐馨","陈子恒","洪鑫浩","周圳熠","林浩宇","黄琦","杨凡熙","张超","余凯锋","蓝晓杰","蔡湘铃","江熠函","谢昆佑","骆雨晴"],
+        "25高职智控02": ["谢铂璋","赵璋峰","杨国鹏","丘云","黄扬艺","沈基源","黄靖婕","陈雅欣","郑佳恒","许泽群","林宇森","林赐龙","游晨希","郑鸿安","朱仕鑫","邹欣童","阮琦玮","陈家宝","黄晓雯","蒋俊辉","杨凯鑫","刘浩","蔡礼晨","陈锐","廖员彬","池邦良","林心乐","吴雨婷","吴增君","陈骏","卢彩华","陈绍涵","林捷航","黄思航","任怡甜","倪史治","何振铭","兰云龙","许怀博","黄炳坤","瞿想","钟誉兴","俞槟琪","肖添涛","游梦林"],
+        "25高职机器人01": ["陈鑫鑫","吴梓惠","谢雨卿","许铭冠","陈志豪","张凌宇","潘艺新","关书杰","潘文涵","张澎","陈泽翔","李向阳","李泽鑫","傅森源","曾华辰","张逸涛","缪芷沅","邓嘉辉","程永涵","黄梓良","叶文涛","陈政杰","吴益铭","陈惠民","王容尚","张斯豪","傅义聪","唐毅","汤喆杰","骆思源","巫宏宇","江茂斌","阙奕涵","张建涛","陈泓文","罗天琪","陈雨乐","上官文钤","张忠信","吴珏琳","吴宇锋","黄淇旭","李家榕"],
+        "25高职机器人02": ["司雷","池承展","陈海欣","柳达翔","蒋雯佳","林伯杰","蔡泽祺","官子涵","冯宁杰","严晓峰","徐彦彬","沈奕涛","李智斌","林钰宸","陈锐涵","杨智伟","胡棋淮","王振宇","郑雨馨","陈鸿","许家兴","许诗婷","王嘉诚","王邦芃","林冠宏","朱泽彬","王宏铭","邱灵涵","苏荣唐","陈吉民","肖锦滨","林兴义","王煌达","罗德福","邱佳冠","赖雨新","吴玮斌","陈文杰","王雅茹","陆俊榕","邱小豪","许舜哲","林志勇","辛奕澎"],
+        "25高职应化01": ["肖铭达","陈海锋","朱思鑫","黄棠铭","付卢城","李嘉兴","陈南雄","吴建峰","李溢鑫","黄淼","江钦圳","王语馨","陈漳新","林贝玲","林乾泰","曾梓铭","邱植灏","傅林杰","蓝振轩","方霆灏","蔡依婷","黄诗倩","汪志远","林锦坤","阮雅鸿","张英琦","罗浩泷","王桂彬","郑泽伟","郑雅纹","陈钟楷","岳镇洋","纪佳铭","吴铭恒","傅怀志","章盛檀","肖雨含","陈娴晔","陈尤泉","陈梦岚","王秦","黄诗雁","吴翱汉","林仁杰","谢华楠"],
+        "25高职应化02": ["黄国翔","李卓航","李梦婷","吴东阳","陆锐泽","洪金伟","吴斌阳","林子航","林嘉玮","邓承浩","陈杰凯","曾文钫","王梓","郑敏君","陈宗明","许晨锋","江辰涛","王艺鹏","陈菲","廖泳濠","尹时香","魏辰","阮奕涵","庄越超","陈芳恩","黄毓瀚","吴勇毅","刘健","苏泓源","张文鑫","张振宇","唐宇翔","黄逸翔","周琳瑶","林心兰","林祥彬","郭萱","陈浮国","廖伊辰","林梓涵","连晓杰","聂雯","骆宇煊","谢文杰"],
+        "25高职新能源01": ["庄铭钦","张振宇","徐子晗","张煌昕","孙仲星","黄梓林","李力鹏","上官云翔","林坤城","何岱同","邓宇烁","叶振轩","伍志霖","邱敬轩","王子轩","吴昌哲","邓沛荣","廖华","黎顺平","陈淑慧","邓玉洁","蔡嘉炜","李梦梦","吴仕大","张成浩","郑睿","吴锦超","衷增鑫","陈润跃","池鑫杰","游锦斌","邱华仪","张义哲","张智龙","陈梓轩","黄博文","陈静妍","邹建成","傅志辉","叶涵宇","曾庆凯","林志杰","柯至贤"],
+        "25高职新能源02": ["阮毅杰","郭欲瑛","潘博诚","赖振霖","曾宇航","李澎","严慧静","刘锦灏","江嘉鸿","黄玉芳","杨竣翔","李天锐","洪艺涵","周炜鹏","傅耀源","郭益敏","翁宇琦","姜志凌","林超群","王彬沣","董养才","阮燕彬","苏佳俐","缪宇恒","郑承弘","彭程锐","郭宝权","郑永彬","苏亦韩","肖贺予","林文凯","范铭顺","黄龙标","陈乐","董晨","林逸","陈鑫远","郑思泓","吴城鑫","曾浪鸿","吴锦彬"],
+        "25高职网络01": ["罗灵橙","朱少斌","吴樊郡","曾佳炆","林君杰","李威晨","黄慧婷","陈湘瑜","刘胜杰","苏明鑫","冯嘉杰","张词衔","谢晨希","方林瀚喆","高烨希","池哲宁","柯鑫杰","吴炜桔","郑威","张锦丰","赵力霏","曾萃英","陈鋆","陈哲新","曾咏轩","蔡宏泽","陈纪铭","吴纹芹","刘佳颖","赵毅斌","詹政航","谢诗晴","蔡怡佳","林智鹏","廖思捷","方奕帆","杨泽凯","郭宇辉","李静","蓝洁盈","王朋","陈伟城"],
+        "25高职网络02": ["林海青","张若男","陈慧","龙捷明","朱静怡","周文涛","黄钰彤","吴政伟","邱倚辰","谢勇顺","黄逸飞","孙诗玥","李雄","陈露茜","黄金秋","李毓程","黄圣凯","沈妙欣","柯宇翔","吴静萱","蔡培钦","洪祥榕","钟乾宇","徐欣雨","蓝晓花","林智鑫","汤伟程","沈沄荣","叶振铭","上官王宸","蔡昱轩","任梓瑄","郑锦安","郑智宇","黄博锴","蔡嘉鑫","薛理俊","钟俊林","肖廷锋","陈雨桐","谢诗铃","陈宜伶","吴歆宇","刘晓军","谢鑫俊"]
+      };
+
+      function buildStudentArray() {
+        const students = [];
+        for (const [className, names] of Object.entries(CLASS_STUDENTS)) {
+          for (const name of names) students.push({ name, class: className });
+        }
+        return students;
+      }
+
+      let allStudents = buildStudentArray();
+      let drawnStudents = [];
+
+      let drawDuration = 1.8;
+      let drawWeight = 1.0;
+      let drawMode = 'uniform';
+      let repeatMode = 'allow'; // 'allow' 允许重复 | 'deny' 不重复
+      let musicVolume = 0.5;
+      let fadeMode = 'fade';
+      let fadeDuration = 1.5;
+
+      const LS_MUSIC_KEY = 'lottery_bg_music_base64';
+      const LS_MUSIC_NAME_KEY = 'lottery_bg_music_name';
+
+      const $ = (id) => document.getElementById(id);
+      const resultNameEl = $('resultName');
+      const resultClassEl = $('resultClass');
+      const totalCountEl = $('totalCount');
+      const drawnCountEl = $('drawnCount');
+      const totalBadge = $('totalBadge');
+      const drawBtn = $('drawBtn');
+      const resetBtn = $('resetBtn');
+      const importTrigger = $('importTrigger');
+      const fileInput = $('fileInput');
+      const musicToggleBtn = $('musicToggleBtn');
+      const bgMusic = $('bgMusic');
+      const settingsToggleBtn = $('settingsToggleBtn');
+      const settingsPanel = $('settingsPanel');
+      const closeSettingsBtn = $('closeSettingsBtn');
+      const durationInput = $('durationInput');
+      const weightInput = $('weightInput');
+      const volumeSlider = $('volumeSlider');
+      const volumeValue = $('volumeValue');
+      const fadeDurationInput = $('fadeDurationInput');
+      const applySettingsBtn = $('applySettingsBtn');
+      const settingsTotalCount = $('settingsTotalCount');
+      const studentListPreview = $('studentListPreview');
+      const clearListBtn = $('clearListBtn');
+      const resetListBtn = $('resetListBtn');
+      const appContainer = $('appContainer');
+      const displayArea = $('displayArea');
+      const musicImportTrigger = $('musicImportTrigger');
+      const musicFileInput = $('musicFileInput');
+      const musicStatus = $('musicStatus');
+      const clearMusicBtn = $('clearMusicBtn');
+
+      let isDrawing = false;
+      let animationTimer = null;
+      let isMusicPlaying = false;
+      let fadeTimer = null;
+
+      function updateStats() {
+        totalCountEl.textContent = allStudents.length;
+        drawnCountEl.textContent = drawnStudents.length;
+        totalBadge.textContent = allStudents.length + '人';
+        settingsTotalCount.textContent = allStudents.length + ' 人';
+        renderStudentListPreview();
+      }
+
+      function renderStudentListPreview() {
+        if (!studentListPreview) return;
+        const maxShow = 60;
+        const shown = allStudents.slice(0, maxShow);
+        studentListPreview.innerHTML = shown.map(s => 
+          `<div class="stu-item"><span>${s.name}</span><span style="color:#5a8ab0">${s.class}</span></div>`
+        ).join('') + (allStudents.length > maxShow ? `<div class="stu-item" style="color:#5a8ab0">... 还有 ${allStudents.length - maxShow} 人</div>` : '');
+      }
+
+      function resetDisplay() {
+        resultNameEl.textContent = '🎉 就绪';
+        resultClassEl.textContent = '点击抽奖开始';
+      }
+
+      function displayWinner(student) {
+        if (!student) return;
+        resultNameEl.textContent = student.name;
+        resultClassEl.textContent = student.class;
+      }
+
+      function applyTheme(theme) {
+        const themes = {
+          default: { accent: '#ffd966', accentDark: '#b16f1a', accentGlow: '#ffbb0044', glassBg: 'rgba(8,20,35,0.82)', displayBg: 'radial-gradient(circle at 50% 30%, #132b42, #050e18)' },
+          ocean: { accent: '#4fc3f7', accentDark: '#0d47a1', accentGlow: '#4fc3f744', glassBg: 'rgba(5,25,45,0.82)', displayBg: 'radial-gradient(circle at 50% 30%, #0d2b4a, #020a14)' },
+          rose: { accent: '#f48fb1', accentDark: '#ad1457', accentGlow: '#f48fb144', glassBg: 'rgba(35,10,25,0.82)', displayBg: 'radial-gradient(circle at 50% 30%, #3a1028, #14040c)' },
+          emerald: { accent: '#66bb6a', accentDark: '#1b5e20', accentGlow: '#66bb6a44', glassBg: 'rgba(8,30,20,0.82)', displayBg: 'radial-gradient(circle at 50% 30%, #103a25, #031408)' },
+          purple: { accent: '#ba68c8', accentDark: '#4a148c', accentGlow: '#ba68c844', glassBg: 'rgba(25,10,35,0.82)', displayBg: 'radial-gradient(circle at 50% 30%, #2a1040, #0a0414)' }
+        };
+        const t = themes[theme] || themes.default;
+        document.documentElement.style.setProperty('--accent', t.accent);
+        document.documentElement.style.setProperty('--accent-dark', t.accentDark);
+        document.documentElement.style.setProperty('--accent-glow', t.accentGlow);
+        document.documentElement.style.setProperty('--glass-bg', t.glassBg);
+        document.documentElement.style.setProperty('--display-bg', t.displayBg);
+        document.documentElement.style.setProperty('--bg-body', `radial-gradient(circle at 30% 20%, ${t.glassBg.replace('0.82','1')}, #030a12)`);
+        appContainer.style.background = t.glassBg;
+        displayArea.style.background = t.displayBg;
+        document.querySelectorAll('.theme-option').forEach(el => {
+          el.classList.toggle('active', el.dataset.theme === theme);
+        });
+      }
+
+      // 获取当前抽取用的候选池
+      function getCandidatePool() {
+        if (repeatMode === 'deny') {
+          // 不重复：从未抽过的人里选
+          const drawnKeys = new Set(drawnStudents.map(s => s.name + '|' + s.class));
+          const pool = allStudents.filter(s => !drawnKeys.has(s.name + '|' + s.class));
+          return pool;
+        } else {
+          // 允许重复：所有人都可以再抽
+          return allStudents;
+        }
+      }
+
+      function startDrawAnimation() {
+        const pool = getCandidatePool();
+        if (pool.length === 0) {
+          alert(repeatMode === 'deny' ? '所有人都已经抽过了！请点击重置或切换为「允许重复」。' : '名单为空，请先导入名单。');
+          return;
+        }
+        isDrawing = true;
+        drawBtn.disabled = true;
+        drawBtn.textContent = '🎰 抽奖中...';
+
+        if (fadeTimer) { clearTimeout(fadeTimer); fadeTimer = null; }
+        bgMusic.volume = musicVolume;
+        bgMusic.currentTime = 0;
+        bgMusic.load();
+        bgMusic.play().then(() => { isMusicPlaying = true; updateMusicButton(); }).catch((err) => {
+          console.warn('播放失败:', err);
+          isMusicPlaying = false;
+          updateMusicButton();
+        });
+
+        let count = 0;
+        const interval = 60;
+        const totalFrames = Math.floor((drawDuration * 1000) / interval);
+
+        if (animationTimer) clearInterval(animationTimer);
+        animationTimer = setInterval(() => {
+          const poolNow = getCandidatePool();
+          if (poolNow.length === 0) { clearInterval(animationTimer); return; }
+          const ri = Math.floor(Math.random() * poolNow.length);
+          displayWinner(poolNow[ri]);
+          count++;
+          if (count >= totalFrames) { clearInterval(animationTimer); finalizeDraw(); }
+        }, interval);
+      }
+
+      function finalizeDraw() {
+        const pool = getCandidatePool();
+        if (pool.length === 0) {
+          isDrawing = false; drawBtn.disabled = false; drawBtn.textContent = '🎲 抽 奖';
+          resultNameEl.textContent = '🎉 已抽完';
+          resultClassEl.textContent = repeatMode === 'deny' ? '所有人都已抽过' : '名单为空';
+          stopMusic();
+          return;
+        }
+
+        let winnerIndex;
+        if (drawMode === 'weighted' && drawWeight > 1.0 && pool.length > 1) {
+          const weights = [];
+          for (let i = 0; i < pool.length; i++) {
+            const pos = i / pool.length;
+            weights.push(Math.pow(1 - pos * 0.9, drawWeight));
+          }
+          const totalW = weights.reduce((a,b) => a+b, 0);
+          let rand = Math.random() * totalW;
+          winnerIndex = 0;
+          for (let i = 0; i < weights.length; i++) { rand -= weights[i]; if (rand <= 0) { winnerIndex = i; break; } }
+        } else {
+          winnerIndex = Math.floor(Math.random() * pool.length);
+        }
+
+        const winner = pool[winnerIndex];
+        // 记录已抽（允许重复模式下也记录，用于统计，但不影响下次抽取）
+        drawnStudents.push(winner);
+        displayWinner(winner);
+        updateStats();
+
+        if (fadeMode === 'fade') { fadeOutMusic(fadeDuration); } else { stopMusic(); }
+
+        isDrawing = false;
+        drawBtn.disabled = false;
+        drawBtn.textContent = '🎲 抽 奖';
+      }
+
+      function fadeOutMusic(duration) {
+        if (bgMusic.paused) { isMusicPlaying = false; updateMusicButton(); return; }
+        const startVol = bgMusic.volume;
+        const startTime = performance.now();
+        if (fadeTimer) clearTimeout(fadeTimer);
+        function step(now) {
+          const elapsed = (now - startTime) / 1000;
+          const progress = Math.min(elapsed / duration, 1);
+          bgMusic.volume = startVol * (1 - progress);
+          if (progress < 1) { requestAnimationFrame(step); }
+          else { bgMusic.pause(); bgMusic.currentTime = 0; bgMusic.volume = musicVolume; isMusicPlaying = false; updateMusicButton(); }
+        }
+        requestAnimationFrame(step);
+      }
+
+      function stopMusic() {
+        bgMusic.pause();
+        bgMusic.currentTime = 0;
+        bgMusic.volume = musicVolume;
+        isMusicPlaying = false;
+        updateMusicButton();
+      }
+
+      function handleDraw() {
+        if (isDrawing) return;
+        startDrawAnimation();
+      }
+
+      function updateMusicButton() { musicToggleBtn.textContent = isMusicPlaying ? '⏸' : '▶'; }
+
+      musicToggleBtn.addEventListener('click', () => {
+        if (isMusicPlaying) { bgMusic.pause(); isMusicPlaying = false; }
+        else {
+          bgMusic.volume = musicVolume;
+          bgMusic.load();
+          bgMusic.play().then(() => { isMusicPlaying = true; }).catch(()=>{});
+        }
+        updateMusicButton();
+      });
+
+      bgMusic.addEventListener('play', () => { isMusicPlaying = true; updateMusicButton(); });
+      bgMusic.addEventListener('pause', () => { isMusicPlaying = false; updateMusicButton(); });
+
+      function resetGame() {
+        if (isDrawing) { clearInterval(animationTimer); isDrawing = false; drawBtn.disabled = false; drawBtn.textContent = '🎲 抽 奖'; }
+        if (fadeTimer) { clearTimeout(fadeTimer); fadeTimer = null; }
+        drawnStudents = [];
+        updateStats();
+        resetDisplay();
+        stopMusic();
+      }
+
+      resetBtn.addEventListener('click', resetGame);
+      drawBtn.addEventListener('click', handleDraw);
+
+      settingsToggleBtn.addEventListener('click', () => settingsPanel.classList.toggle('active'));
+      closeSettingsBtn.addEventListener('click', () => settingsPanel.classList.remove('active'));
+
+      volumeSlider.addEventListener('input', (e) => {
+        volumeValue.textContent = Math.round(e.target.value * 100) + '%';
+        musicVolume = parseFloat(e.target.value);
+        if (!bgMusic.paused) bgMusic.volume = musicVolume;
+      });
+
+      document.querySelectorAll('.theme-option').forEach(el => {
+        el.addEventListener('click', () => {
+          document.querySelectorAll('.theme-option').forEach(e => e.classList.remove('active'));
+          el.classList.add('active');
+          applyTheme(el.dataset.theme);
+        });
+      });
+
+      applySettingsBtn.addEventListener('click', () => {
+        drawDuration = parseFloat(durationInput.value) || 1.8;
+        drawWeight = parseFloat(weightInput.value) || 1.0;
+        musicVolume = parseFloat(volumeSlider.value);
+        fadeDuration = parseFloat(fadeDurationInput.value) || 1.5;
+        const modeRadio = document.querySelector('input[name="drawMode"]:checked');
+        drawMode = modeRadio ? modeRadio.value : 'uniform';
+        const repeatRadio = document.querySelector('input[name="repeatMode"]:checked');
+        repeatMode = repeatRadio ? repeatRadio.value : 'allow';
+        const fadeRadio = document.querySelector('input[name="fadeMode"]:checked');
+        fadeMode = fadeRadio ? fadeRadio.value : 'fade';
+
+        if (!bgMusic.paused) bgMusic.volume = musicVolume;
+        settingsPanel.classList.remove('active');
+        applySettingsBtn.textContent = '✅ 已应用';
+        setTimeout(() => { applySettingsBtn.textContent = '✅ 应用设置'; }, 800);
+      });
+
+      clearListBtn.addEventListener('click', () => {
+        if (confirm('确定清空所有名单？此操作不可撤销。')) {
+          allStudents = [];
+          drawnStudents = [];
+          updateStats();
+          resetDisplay();
+        }
+      });
+
+      resetListBtn.addEventListener('click', () => {
+        allStudents = buildStudentArray();
+        drawnStudents = [];
+        updateStats();
+        resetDisplay();
+        alert(`已恢复默认名单，共 ${allStudents.length} 人`);
+      });
+
+      function importStudentList(text) {
+        const lines = text.split(/\r?\n/).filter(l => l.trim() !== '');
+        if (lines.length === 0) { alert('文件内容为空'); return; }
+        const newStudents = [];
+        for (const line of lines) {
+          const parts = line.split(/[,，\t]+/).map(s => s.trim()).filter(s => s);
+          if (parts.length >= 2) newStudents.push({ name: parts[0], class: parts[1] });
+        }
+        if (newStudents.length === 0) { alert('未解析到有效数据'); return; }
+        allStudents = newStudents;
+        drawnStudents = [];
+        updateStats();
+        resetDisplay();
+        if (isDrawing) { clearInterval(animationTimer); isDrawing = false; drawBtn.disabled = false; drawBtn.textContent = '🎲 抽 奖'; }
+        stopMusic();
+        alert(`成功导入 ${newStudents.length} 条数据`);
+      }
+
+      importTrigger.addEventListener('click', () => fileInput.click());
+      fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => importStudentList(ev.target.result);
+        reader.readAsText(file, 'UTF-8');
+        fileInput.value = '';
+      });
+
+      document.addEventListener('dragover', (e) => { e.preventDefault(); e.stopPropagation(); });
+      document.addEventListener('drop', (e) => {
+        e.preventDefault(); e.stopPropagation();
+        const file = e.dataTransfer.files[0];
+        if (file) { const reader = new FileReader(); reader.onload = (ev) => importStudentList(ev.target.result); reader.readAsText(file, 'UTF-8'); }
+      });
+
+      function loadSavedMusic() {
+        try {
+          const base64 = localStorage.getItem(LS_MUSIC_KEY);
+          const name = localStorage.getItem(LS_MUSIC_NAME_KEY);
+          if (base64) {
+            bgMusic.src = base64;
+            bgMusic.load();
+            musicStatus.textContent = '当前：' + (name || '已保存的音乐');
+            return true;
+          }
+        } catch (err) {
+          console.warn('读取本地音乐失败:', err);
+        }
+        musicStatus.textContent = '当前：默认音乐';
+        return false;
+      }
+
+      function saveMusicToLocal(file) {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          const base64 = ev.target.result;
+          try {
+            localStorage.setItem(LS_MUSIC_KEY, base64);
+            localStorage.setItem(LS_MUSIC_NAME_KEY, file.name);
+            bgMusic.src = base64;
+            bgMusic.load();
+            musicStatus.textContent = '当前：' + file.name + ' (已保存)';
+            isMusicPlaying = false;
+            updateMusicButton();
+            alert('✅ 背景音乐已保存，下次打开无需重新导入！\n\n提示：点击播放按钮或开始抽奖即可试听。');
+          } catch (err) {
+            console.error('保存失败:', err);
+            if (err.name === 'QuotaExceededError' || err.code === 22) {
+              alert('❌ 音乐文件过大，无法保存到浏览器。\n建议使用较小的 MP3 文件（建议小于 4MB）。');
+            } else {
+              alert('❌ 保存失败：' + err.message);
+            }
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+
+      clearMusicBtn.addEventListener('click', () => {
+        if (confirm('确定清除已保存的背景音乐？下次将使用默认音乐。')) {
+          localStorage.removeItem(LS_MUSIC_KEY);
+          localStorage.removeItem(LS_MUSIC_NAME_KEY);
+          bgMusic.src = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3';
+          bgMusic.load();
+          musicStatus.textContent = '当前：默认音乐';
+          isMusicPlaying = false;
+          updateMusicButton();
+          alert('已清除保存的音乐');
+        }
+      });
+
+      musicImportTrigger.addEventListener('click', () => musicFileInput.click());
+      musicFileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        if (file.size > 4 * 1024 * 1024) {
+          alert('❌ 文件过大（' + (file.size / 1024 / 1024).toFixed(2) + 'MB）。\n建议使用小于 4MB 的 MP3 文件。');
+          musicFileInput.value = '';
+          return;
+        }
+        saveMusicToLocal(file);
+        musicFileInput.value = '';
+      });
+
+      updateStats();
+      resetDisplay();
+      updateMusicButton();
+      bgMusic.volume = musicVolume;
+      applyTheme('default');
+      loadSavedMusic();
+
+      console.log('抽奖系统已就绪，共 ' + allStudents.length + ' 名学生');
+    })();
+  </script>
+</body>
+</html>
